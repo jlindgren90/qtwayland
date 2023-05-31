@@ -452,7 +452,7 @@ void QWaylandWindow::setGeometry(const QRect &r)
 
     if (mShellSurface) {
         mShellSurface->setWindowGeometry(windowContentGeometry());
-        if (!qt_window_private(window())->positionAutomatic)
+        if (!qt_window_private(window())->positionAutomatic && !mInResizeFromApplyConfigure)
             mShellSurface->setWindowPosition(windowGeometry().topLeft());
     }
 
