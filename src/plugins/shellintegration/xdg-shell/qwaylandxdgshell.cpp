@@ -690,13 +690,26 @@ std::unique_ptr<QWaylandXdgSurface::Positioner> QWaylandXdgSurface::createPositi
 
     // These property overrides may be removed when public API becomes available
     QRect placementAnchor = m_window->window()->property("_q_waylandPopupAnchorRect").toRect();
+    QWaylandXdgSurface *xdg_parent = qobject_cast<QWaylandXdgSurface *>(parent->shellSurface());
     if (!placementAnchor.isValid()) {
-        placementAnchor = QRect(m_window->geometry().topLeft() - parent->geometry().topLeft(), QSize(1,1));
+        if (xdg_parent && xdg_parent->m_popup) {
+            // Nested popup - assume it's a nested menu and adjust positioning accordingly
+            placementAnchor = QRect(1, m_window->geometry().top() - parent->geometry().top(),
+                                    xdg_parent->m_window->windowContentGeometry().width() - 2, 1);
+            placementAnchor.translate(0, windowMargins.top());
+            placementAnchor.translate(0, -parentMargins.top());
+        } else {
+            placementAnchor = QRect(m_window->geometry().topLeft() - parent->geometry().topLeft(), QSize(1,1));
+            placementAnchor.translate(windowMargins.left(), windowMargins.top());
+            placementAnchor.translate(-parentMargins.left(), -parentMargins.top());
+        }
     }
-    placementAnchor.translate(windowMargins.left(), windowMargins.top());
-    placementAnchor.translate(-parentMargins.left(), -parentMargins.top());
 
     uint32_t anchor = QtWayland::xdg_positioner::anchor_top_left;
+    if (xdg_parent && xdg_parent->m_popup) {
+        // Nested popup - assume it's a nested menu and adjust positioning accordingly
+        anchor = QtWayland::xdg_positioner::anchor_top_right;
+    }
     const QVariant anchorVariant = m_window->window()->property("_q_waylandPopupAnchor");
     if (anchorVariant.isValid()) {
         switch (anchorVariant.value<Qt::Edges>()) {
@@ -765,6 +778,10 @@ std::unique_ptr<QWaylandXdgSurface::Positioner> QWaylandXdgSurface::createPositi
     }
 
     uint32_t constraintAdjustment = QtWayland::xdg_positioner::constraint_adjustment_slide_x | QtWayland::xdg_positioner::constraint_adjustment_slide_y;
+    if (xdg_parent && xdg_parent->m_popup) {
+        // Nested popup - assume it's a nested menu and adjust positioning accordingly
+        constraintAdjustment |= QtWayland::xdg_positioner::constraint_adjustment_flip_x;
+    }
     const QVariant constraintAdjustmentVariant = m_window->window()->property("_q_waylandPopupConstraintAdjustment");
     if (constraintAdjustmentVariant.isValid()) {
         constraintAdjustment = constraintAdjustmentVariant.toUInt();
