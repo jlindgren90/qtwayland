@@ -850,6 +850,7 @@ void QWaylandInputDevice::Pointer::pointer_button(uint32_t serial, uint32_t time
 
     mLastButton = qt_button;
 
+    auto prevButtons = mButtons;
     if (state)
         mButtons |= qt_button;
     else
@@ -871,10 +872,21 @@ void QWaylandInputDevice::Pointer::pointer_button(uint32_t serial, uint32_t time
         window = grab;
     }
 
-    if (state)
+    if (state) {
         setFrameEvent(new PressEvent(window, time, pos, global, mButtons, qt_button, mParent->modifiers()));
-    else
+    } else {
+        // Under some compositors (Weston for example), a leave + enter event pair is seen if a
+        // button is held while the pointer is moved onto a popup (e.g. menu). This results in
+        // subsequent motion events having buttons() == 0, causing QMenu not to trigger any action
+        // once the release event occurs. As a workaround, first send a synthetic motion event with
+        // the button that is being released (we can infer that it was previously pressed). The
+        // positions must be different from the previous event or Qt will ignore the event.
+        if (!(prevButtons & qt_button)) {
+            setFrameEvent(new MotionEvent(window, time, pos + QPointF(1, 1), global + QPointF(1, 1),
+                                          prevButtons | qt_button, mParent->modifiers()));
+        }
         setFrameEvent(new ReleaseEvent(window, time, pos, global, mButtons, qt_button, mParent->modifiers()));
+    }
 }
 
 void QWaylandInputDevice::Pointer::invalidateFocus()
