@@ -187,12 +187,6 @@ QWaylandTabletSeatV2::QWaylandTabletSeatV2(QWaylandTabletManagerV2 *manager, QWa
 
 QWaylandTabletSeatV2::~QWaylandTabletSeatV2()
 {
-    for (auto *tablet : m_tablets)
-        tablet->destroy();
-    for (auto *tool : m_tools)
-        tool->destroy();
-    for (auto *pad : m_pads)
-        pad->destroy();
     qDeleteAll(m_tablets);
     qDeleteAll(m_tools);
     qDeleteAll(m_deadTools);
@@ -254,6 +248,11 @@ QWaylandTabletV2::QWaylandTabletV2(::zwp_tablet_v2 *tablet, const QString &seatN
     d->seatName = seatName;
 }
 
+QWaylandTabletV2::~QWaylandTabletV2()
+{
+    destroy();
+}
+
 void QWaylandTabletV2::zwp_tablet_v2_name(const QString &name)
 {
     QPointingDevicePrivate *d = QPointingDevicePrivate::get(this);
@@ -292,7 +291,6 @@ void QWaylandTabletSeatV2::toolRemoved(QWaylandTabletToolV2 *tool)
 
 void QWaylandTabletV2::zwp_tablet_v2_removed()
 {
-    destroy();
     deleteLater();
 }
 
@@ -316,7 +314,10 @@ QWaylandTabletToolV2::QWaylandTabletToolV2(QWaylandTabletSeatV2 *tabletSeat, ::z
 #endif
 }
 
-QWaylandTabletToolV2::~QWaylandTabletToolV2() = default;
+QWaylandTabletToolV2::~QWaylandTabletToolV2()
+{
+    destroy();
+}
 
 void QWaylandTabletToolV2::zwp_tablet_tool_v2_type(uint32_t tool_type)
 {
@@ -410,7 +411,6 @@ void QWaylandTabletToolV2::zwp_tablet_tool_v2_done()
 
 void QWaylandTabletToolV2::zwp_tablet_tool_v2_removed()
 {
-    destroy();
     m_tabletSeat->toolRemoved(this);
 }
 
@@ -602,6 +602,11 @@ QWaylandTabletPadV2::QWaylandTabletPadV2(::zwp_tablet_pad_v2 *pad)
 {
 }
 
+QWaylandTabletPadV2::~QWaylandTabletPadV2()
+{
+    destroy();
+}
+
 void QWaylandTabletPadV2::zwp_tablet_pad_v2_path(const QString &path)
 {
     QPointingDevicePrivate *d = QPointingDevicePrivate::get(this);
@@ -621,7 +626,6 @@ void QWaylandTabletPadV2::zwp_tablet_pad_v2_done()
 
 void QWaylandTabletPadV2::zwp_tablet_pad_v2_removed()
 {
-    destroy();
     delete this;
 }
 
