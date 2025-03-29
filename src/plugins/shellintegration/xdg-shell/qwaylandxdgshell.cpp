@@ -678,6 +678,7 @@ void QWaylandXdgSurface::setWindowPosition(const QPoint &position)
     m_popup->m_waitingForRepositionSerial++;
     m_popup->reposition(positioner->object(), m_popup->m_waitingForRepositionSerial);
     m_popup->m_waitingForReposition = true;
+    window()->updateExposure();
 }
 
 std::unique_ptr<QWaylandXdgSurface::Positioner> QWaylandXdgSurface::createPositioner(QWaylandWindow *parent)
