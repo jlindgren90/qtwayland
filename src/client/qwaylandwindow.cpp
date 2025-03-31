@@ -106,6 +106,7 @@ void QWaylandWindow::initWindow()
      */
     mSurface->attach(nullptr, 0, 0);
     mSurface->commit();
+    resetFrameCallback();
 
     if (window()->type() == Qt::Desktop)
         return;
@@ -325,6 +326,15 @@ void QWaylandWindow::resetSurfaceRole()
     delete std::exchange(mShellSurface, nullptr);
     delete std::exchange(mSubSurfaceWindow, nullptr);
     emit surfaceRoleDestroyed();
+
+    resetFrameCallback();
+    mInFrameRender = false;
+    mWaitingToApplyConfigure = false;
+    mExposed = false;
+}
+
+void QWaylandWindow::resetFrameCallback()
+{
     {
         QMutexLocker lock(&mFrameSyncMutex);
         if (mFrameCallback) {
@@ -338,10 +348,7 @@ void QWaylandWindow::resetSurfaceRole()
         killTimer(mFrameCallbackCheckIntervalTimerId);
         mFrameCallbackCheckIntervalTimerId = -1;
     }
-    mInFrameRender = false;
     mFrameCallbackTimedOut = false;
-    mWaitingToApplyConfigure = false;
-    mExposed = false;
 }
 
 QWaylandWindow *QWaylandWindow::fromWlSurface(::wl_surface *surface)
